@@ -4,9 +4,7 @@ version = "0.1.0"
 description = "AWS serverless Python data engineering demonstration"
 requires-python = ">=3.9"
 dependencies = [
-    "boto3",
-    "pandas",
-    "pyarrow",
+    "awswrangler",
 ]
 
 [project.optional-dependencies]

@@ -1,5 +1,6 @@
 resource "aws_s3_bucket" "landing_zone" {
-  bucket = var.bucket_name
+  bucket        = var.bucket_name
+  force_destroy = true
 
   tags = {
     Name        = var.bucket_name
@@ -57,4 +58,16 @@ resource "aws_s3_bucket_policy" "landing_zone_ssl_only" {
       }
     ]
   })
+}
+
+resource "aws_s3_object" "sample_csv" {
+  bucket = aws_s3_bucket.landing_zone.id
+  key    = "Data_Entry_2017.csv"
+  source = "../Data_Entry_2017.csv"
+  etag   = filemd5("../Data_Entry_2017.csv")
+
+  tags = {
+    Name = "Sample Medical Dataset"
+    Type = "CSV"
+  }
 }
