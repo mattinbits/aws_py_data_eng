@@ -1,0 +1,33 @@
+[project]
+name = "aws-py-data-eng"
+version = "0.1.0"
+description = "AWS serverless Python data engineering demonstration"
+requires-python = ">=3.9"
+dependencies = [
+    "boto3",
+    "pandas",
+    "pyarrow",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    "isort",
+    "flake8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[project.scripts]
+data-eng = "aws_py_data_eng.main:main"
