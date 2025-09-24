@@ -160,8 +160,6 @@ resource "aws_glue_job" "csv_to_parquet" {
     "--additional-python-modules"        = "awswrangler"
     "--extra-py-files"                   = "s3://${aws_s3_bucket.glue_scripts.bucket}/${aws_s3_object.csv_to_parquet_module.key}"
     "--TempDir"                         = "s3://${aws_s3_bucket.glue_scripts.bucket}/temp/"
-    "--bucket-name"                     = aws_s3_bucket.landing_zone.bucket
-    "--csv-key"                         = ""
   }
 
   execution_property {
@@ -200,9 +198,9 @@ resource "aws_cloudwatch_event_rule" "s3_csv_upload" {
   }
 }
 
-# IAM role for EventBridge to start Glue jobs
-resource "aws_iam_role" "eventbridge_glue_role" {
-  name = "EventBridgeGlueJobRole"
+# IAM role for EventBridge to start Step Functions
+resource "aws_iam_role" "eventbridge_stepfunctions_role" {
+  name = "EventBridgeStepFunctionsRole"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -218,14 +216,14 @@ resource "aws_iam_role" "eventbridge_glue_role" {
   })
 
   tags = {
-    Name = "EventBridge Glue Job Role"
+    Name = "EventBridge Step Functions Role"
   }
 }
 
-# IAM policy for EventBridge to start Glue workflows
-resource "aws_iam_policy" "eventbridge_glue_policy" {
-  name        = "EventBridgeGlueWorkflowPolicy"
-  description = "Policy for EventBridge to start Glue workflows"
+# IAM policy for EventBridge to start Step Functions
+resource "aws_iam_policy" "eventbridge_stepfunctions_policy" {
+  name        = "EventBridgeStepFunctionsPolicy"
+  description = "Policy for EventBridge to start Step Functions"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -233,9 +231,9 @@ resource "aws_iam_policy" "eventbridge_glue_policy" {
       {
         Effect = "Allow"
         Action = [
-          "glue:notifyEvent"
+          "states:StartExecution"
         ]
-        Resource = "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:workflow/${aws_glue_workflow.csv_to_parquet_workflow.name}"
+        Resource = aws_sfn_state_machine.csv_to_parquet_workflow.arn
       },
       {
         Effect = "Allow"
@@ -248,34 +246,68 @@ resource "aws_iam_policy" "eventbridge_glue_policy" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "eventbridge_glue_policy_attachment" {
-  role       = aws_iam_role.eventbridge_glue_role.name
-  policy_arn = aws_iam_policy.eventbridge_glue_policy.arn
+resource "aws_iam_role_policy_attachment" "eventbridge_stepfunctions_policy_attachment" {
+  role       = aws_iam_role.eventbridge_stepfunctions_role.name
+  policy_arn = aws_iam_policy.eventbridge_stepfunctions_policy.arn
 }
 
-# Glue workflow to wrap the job
-resource "aws_glue_workflow" "csv_to_parquet_workflow" {
-  name        = "csv-to-parquet-workflow"
-  description = "Workflow to trigger CSV to Parquet conversion"
+# IAM role for Step Functions to start Glue jobs
+resource "aws_iam_role" "stepfunctions_role" {
+  name = "StepFunctionsCsvToParquetRole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "states.amazonaws.com"
+        }
+      }
+    ]
+  })
 
   tags = {
-    Name = "CSV to Parquet Workflow"
-    Environment = "dev"
+    Name = "Step Functions CSV to Parquet Role"
   }
 }
 
-# Glue trigger to start the job within the workflow
-resource "aws_glue_trigger" "csv_to_parquet_trigger" {
-  name          = "csv-to-parquet-trigger"
-  type          = "EVENT"
-  workflow_name = aws_glue_workflow.csv_to_parquet_workflow.name
+# IAM policy for Step Functions to start Glue jobs
+resource "aws_iam_policy" "stepfunctions_glue_policy" {
+  name        = "StepFunctionsGluePolicy"
+  description = "Policy for Step Functions to start Glue jobs"
 
-  actions {
-    job_name = aws_glue_job.csv_to_parquet.name
-  }
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "glue:StartJobRun",
+          "glue:GetJobRun",
+          "glue:GetJobRuns",
+          "glue:BatchStopJobRun"
+        ]
+        Resource = aws_glue_job.csv_to_parquet.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "stepfunctions_glue_policy_attachment" {
+  role       = aws_iam_role.stepfunctions_role.name
+  policy_arn = aws_iam_policy.stepfunctions_glue_policy.arn
+}
+
+# Step Functions state machine
+resource "aws_sfn_state_machine" "csv_to_parquet_workflow" {
+  name       = "csv-to-parquet-workflow"
+  role_arn   = aws_iam_role.stepfunctions_role.arn
+  definition = file("${path.module}/step_function_definition.json")
 
   tags = {
-    Name = "CSV to Parquet Trigger"
+    Name = "CSV to Parquet Step Functions"
     Environment = "dev"
   }
 }
@@ -290,12 +322,12 @@ resource "aws_sqs_queue" "eventbridge_dlq" {
   }
 }
 
-# EventBridge target to start Glue workflow
-resource "aws_cloudwatch_event_target" "glue_workflow_target" {
+# EventBridge target to start Step Functions
+resource "aws_cloudwatch_event_target" "stepfunctions_target" {
   rule      = aws_cloudwatch_event_rule.s3_csv_upload.name
-  target_id = "GlueWorkflowTarget"
-  arn       = "arn:aws:glue:${var.aws_region}:${data.aws_caller_identity.current.account_id}:workflow/${aws_glue_workflow.csv_to_parquet_workflow.name}"
-  role_arn  = aws_iam_role.eventbridge_glue_role.arn
+  target_id = "StepFunctionsTarget"
+  arn       = aws_sfn_state_machine.csv_to_parquet_workflow.arn
+  role_arn  = aws_iam_role.eventbridge_stepfunctions_role.arn
 
   dead_letter_config {
     arn = aws_sqs_queue.eventbridge_dlq.arn
@@ -305,9 +337,6 @@ resource "aws_cloudwatch_event_target" "glue_workflow_target" {
     maximum_retry_attempts       = 2
     maximum_event_age_in_seconds = 300
   }
-
-  # Remove input_transformer for now - Glue workflows might not support it
-  # The job will use the default arguments instead
 }
 
 # S3 bucket notification to EventBridge

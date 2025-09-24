@@ -1,0 +1,26 @@
+{
+  "Comment": "Trigger Glue job for CSV to Parquet conversion with S3 event details",
+  "StartAt": "TriggerGlueJob",
+  "States": {
+    "TriggerGlueJob": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "csv-to-parquet-converter",
+        "Arguments": {
+          "--bucket_name.$": "$.detail.bucket.name",
+          "--csv_key.$": "$.detail.object.key"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ],
+      "End": true
+    }
+  }
+}

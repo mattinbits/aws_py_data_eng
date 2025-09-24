@@ -72,7 +72,6 @@ terraform.rc
 
 # Data files
 *.csv
-*.json
 *.parquet
 *.avro
 data/

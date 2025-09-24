@@ -9,14 +9,13 @@ import csv_to_parquet
 
 def main():
     """Glue job entry point that calls the existing csv_to_parquet module."""
-    # Get job parameters from Glue
-    args = getResolvedOptions(sys.argv, ['JOB_NAME', 'bucket-name', 'csv-key'])
     
-    job_name = args['JOB_NAME']
-    bucket_name = args['bucket-name']
-    csv_key = args['csv-key']
+    # Get job arguments including S3 details passed from Step Functions
+    args = getResolvedOptions(sys.argv, ['bucket_name', 'csv_key'])
+    bucket_name = args['bucket_name']
+    csv_key = args['csv_key']
     
-    print(f"Starting Glue job: {job_name}")
+    print("Starting CSV to Parquet conversion job")
     print(f"Processing file: s3://{bucket_name}/{csv_key}")
     
     try:
