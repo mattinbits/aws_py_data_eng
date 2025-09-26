@@ -76,3 +76,5 @@ terraform.rc
 *.avro
 data/
 logs/
+
+lambda_deployment.zip

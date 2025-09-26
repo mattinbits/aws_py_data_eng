@@ -43,8 +43,8 @@ resource "aws_s3_bucket_public_access_block" "glue_scripts_pab" {
 resource "aws_s3_object" "glue_script" {
   bucket = aws_s3_bucket.glue_scripts.id
   key    = "scripts/glue_wrapper.py"
-  source = "${path.module}/glue_wrapper.py"
-  etag   = filemd5("${path.module}/glue_wrapper.py")
+  source = "${path.module}/../src/aws_py_data_eng/glue_wrapper.py"
+  etag   = filemd5("${path.module}/../src/aws_py_data_eng/glue_wrapper.py")
 
   tags = {
     Name = "CSV to Parquet Glue Wrapper"
@@ -56,8 +56,8 @@ resource "aws_s3_object" "glue_script" {
 resource "aws_s3_object" "csv_to_parquet_module" {
   bucket = aws_s3_bucket.glue_scripts.id
   key    = "scripts/csv_to_parquet.py"
-  source = "${path.module}/../aws_py_data_eng/csv_to_parquet.py"
-  etag   = filemd5("${path.module}/../aws_py_data_eng/csv_to_parquet.py")
+  source = "${path.module}/../src/aws_py_data_eng/csv_to_parquet.py"
+  etag   = filemd5("${path.module}/../src/aws_py_data_eng/csv_to_parquet.py")
 
   tags = {
     Name = "CSV to Parquet Module"
@@ -186,6 +186,8 @@ resource "aws_cloudwatch_event_rule" "s3_csv_upload" {
       }
       object = {
         key = [{
+          prefix = "glue/"
+        }, {
           suffix = ".csv"
         }]
       }
@@ -339,11 +341,6 @@ resource "aws_cloudwatch_event_target" "stepfunctions_target" {
   }
 }
 
-# S3 bucket notification to EventBridge
-resource "aws_s3_bucket_notification" "eventbridge_notification" {
-  bucket      = aws_s3_bucket.landing_zone.id
-  eventbridge = true
-}
 
 # CloudWatch log group for Glue job
 resource "aws_cloudwatch_log_group" "glue_job_logs" {

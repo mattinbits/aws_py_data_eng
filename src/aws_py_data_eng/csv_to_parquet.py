@@ -14,7 +14,7 @@ def clean_column_name(column_name: str) -> str:
     return snake_case
 
 
-def convert_csv_to_parquet(bucket: str, csv_key: str) -> str:
+def Th(bucket: str, csv_key: str) -> str:
     """
     Read CSV from S3, apply appropriate types, clean column names, and save as Parquet.
     
