@@ -1,5 +1,3 @@
-# Get current AWS account ID
-data "aws_caller_identity" "current" {}
 
 # S3 bucket for Glue scripts and assets
 resource "aws_s3_bucket" "glue_scripts" {

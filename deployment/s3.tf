@@ -60,14 +60,47 @@ resource "aws_s3_bucket_policy" "landing_zone_ssl_only" {
   })
 }
 
-resource "aws_s3_object" "sample_csv" {
+# Create S3 folder structure for different processing workflows
+resource "aws_s3_object" "lambda_folder" {
   bucket = aws_s3_bucket.landing_zone.id
-  key    = "Data_Entry_2017.csv"
-  source = "../Data_Entry_2017.csv"
-  etag   = filemd5("../Data_Entry_2017.csv")
-
+  key    = "lambda/"
+  source = "/dev/null"
+  
   tags = {
-    Name = "Sample Medical Dataset"
-    Type = "CSV"
+    Name = "Lambda Processing Folder"
+    Type = "Folder"
+  }
+}
+
+resource "aws_s3_object" "glue_folder" {
+  bucket = aws_s3_bucket.landing_zone.id
+  key    = "glue/"
+  source = "/dev/null"
+  
+  tags = {
+    Name = "Glue Processing Folder"
+    Type = "Folder"
+  }
+}
+
+resource "aws_s3_object" "batch_folder" {
+  bucket = aws_s3_bucket.landing_zone.id
+  key    = "batch/"
+  source = "/dev/null"
+  
+  tags = {
+    Name = "Batch Processing Folder"
+    Type = "Folder"
+  }
+}
+
+resource "aws_s3_object" "batch_results_folder" {
+  bucket = aws_s3_bucket.landing_zone.id
+  key    = "batch/results/"
+  source = "/dev/null"
+  
+  tags = {
+    Name = "Batch Results Folder"
+    Type = "Folder"
   }
 }

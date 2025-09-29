@@ -1,6 +1,6 @@
 # AWS-provided awswrangler layer ARN
 locals {
-  awswrangler_layer_arn = "arn:aws:lambda:eu-central-1:336392948345:layer:AWSSDKPandas-Python312:19"
+  awswrangler_layer_arn = "arn:aws:lambda:us-east-1:336392948345:layer:AWSSDKPandas-Python312:19"
 }
 
 # Create deployment package for Lambda function
@@ -74,7 +74,7 @@ resource "aws_lambda_function" "csv_to_parquet" {
   filename         = data.archive_file.lambda_zip.output_path
   function_name    = "csv-to-parquet-converter"
   role            = aws_iam_role.lambda_csv_to_parquet_role.arn
-  handler         = "lambda_wrapper.lambda_handler"
+  handler         = "aws_py_data_eng.lambda_wrapper.lambda_handler"
   runtime         = "python3.12"
   timeout         = 300
   memory_size     = 512
