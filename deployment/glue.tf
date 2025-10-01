@@ -184,9 +184,7 @@ resource "aws_cloudwatch_event_rule" "s3_csv_upload" {
       }
       object = {
         key = [{
-          prefix = "glue/"
-        }, {
-          suffix = ".csv"
+          wildcard = "glue/*.csv"
         }]
       }
     }

@@ -373,9 +373,7 @@ resource "aws_cloudwatch_event_rule" "s3_config_upload_batch" {
       }
       object = {
         key = [{
-          prefix = "batch/"
-        }, {
-          suffix = ".txt"
+          wildcard = "batch/*.txt"
         }]
       }
     }
